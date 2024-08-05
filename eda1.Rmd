@@ -1,0 +1,268 @@
+```{r}
+getwd()
+setwd("C:/Users/JISHAN/OneDrive/Desktop")
+shopping_data<-read.csv("shopping_behavior_updated.csv")
+shopping_data
+
+```
+
+
+```{r}
+library(dplyr)
+category_counts <- shopping_data %>% 
+  group_by(Location, Category) %>% 
+  summarise(count = n())
+print("Regional Category Trends:\n")
+print(category_counts)
+```
+
+
+```{r}
+location_counts <- table(shopping_data$Location)
+print("Location Counts:\n")
+print(location_counts)
+```
+
+
+```{r}
+Location_counts <- as.data.frame(table(shopping_data$Location))
+colnames(Location_counts) <- c("Location", "Count")
+print("Location Counts:\n")
+print(Location_counts)
+
+```
+```{r}
+category_counts <- as.data.frame(table(shopping_data$Category))
+colnames(category_counts) <- c("Category", "Count")
+print("category Counts:\n")
+print(category_counts)
+```
+
+
+
+
+
+```{r}
+library(dplyr)
+result_table <- shopping_data %>%
+  group_by(Category) %>%
+  summarise(total_purchase_amount = sum(Purchase.Amount..USD.))
+print(result_table)
+```
+
+
+
+
+```{r}
+
+library(dplyr)
+
+location_purchase_stats <- shopping_data %>%
+  group_by(Location) %>%
+  summarise(
+    mean = mean(`Purchase.Amount..USD.`, na.rm = TRUE),
+    median = median(`Purchase.Amount..USD.`, na.rm = TRUE),
+    sum = sum(`Purchase.Amount..USD.`, na.rm = TRUE)
+  )
+
+print("Regional Purchase Amount Stats:\n")
+print(location_purchase_stats)
+
+```
+
+
+                   
+
+```{r}
+library(dplyr)
+shipping_type_counts <- shopping_data %>%
+  count(Location, `Shipping.Type`) %>%
+  arrange(Location, desc(n))
+
+
+print("Regional Shipping Type Trends:\n")
+print(shipping_type_counts)
+```
+
+
+
+```{r}
+library(dplyr)
+location_groups <- shopping_data %>% group_by(Location)
+for (location in unique(shopping_data$Location)) {
+  location_data <- filter(shopping_data, Location == location)
+  cat(paste("Regional Trends for", location, ":\n"))
+   avg_purchase_amount <- mean(location_data$`Purchase.Amount..USD.`, na.rm = TRUE)
+  cat(paste("Average Purchase Amount: $", sprintf("%.2f", avg_purchase_amount), "\n"))
+  popular_categories <- names(which.max(table(location_data$Category)))
+  cat(paste("Most Popular Category:", popular_categories, "\n"))
+  online_shopping <- ifelse(grepl("Express|Standard", location_data$`Shipping Type`), "Online", "Offline")
+  online_percentage <- (table(online_shopping) / length(online_shopping)) * 100
+  cat("Online Shopping Preference:\n")
+  print(online_percentage)
+  
+  cat("\n")
+}
+```
+
+
+
+```{r}
+
+library(ggplot2)
+average_purchase_by_season <- aggregate(`Purchase.Amount..USD.` ~ Season, data = shopping_data, FUN = mean)
+plot <- ggplot(average_purchase_by_season, aes(x = Season, y = `Purchase.Amount..USD.`, fill = Season)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  labs(title = "Impact of Season on Purchase",
+       x = "Season",
+       y = "Average Purchase (USD)") +
+  scale_fill_manual(values = c('skyblue', 'lightcoral', 'lightgreen', 'lightpink')) +
+  theme_minimal()
+print(plot)
+
+```
+
+
+We can see from the visual that customers bought more in the winter and autumn than they did in the spring and summer.
+
+
+
+```{r}
+library(ggplot2)
+plot <- ggplot(shopping_data, aes(x = Category, y = `Purchase.Amount..USD.`)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Impact of Category on Purchase",
+       x = "Category",
+       y = "Purchase.Amount..USD.") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+print(plot)
+```
+
+
+
+
+The graph shows that the Outerwear Category is a bit lower than the other categories.
+
+
+
+
+```{r}
+library(ggplot2)
+gender_purchase <- aggregate(`Purchase.Amount..USD.` ~ Gender, data = shopping_data, FUN = sum)
+
+plot <- ggplot(gender_purchase, aes(x = "", y = `Purchase.Amount..USD.`, fill = Gender)) +
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar("y", start = 0) +
+  labs(title = "Impact of Gender on Purchase") +
+  scale_fill_manual(values = c("skyblue", "yellow")) +
+  theme_void() +
+  theme(legend.position = "bottom") +
+  geom_text(aes(label = paste0(round((`Purchase.Amount..USD.` / sum(`Purchase.Amount..USD.`)) * 100, 1), "%")), 
+            position = position_stack(vjust = 0.5), color = "black", size = 4)
+print(plot)
+
+```
+
+
+
+Males are more likely to spend (67%), whereas females are less likely to spend (32%).
+
+
+
+
+```{r}
+library(ggplot2)
+promo_counts <- table(shopping_data$`Promo.Code.Used`)
+promo_data <- data.frame(
+  Promo = names(promo_counts),
+  Count = as.numeric(promo_counts)
+)
+plot <- ggplot(promo_data, aes(x = "", y = Count, fill = Promo)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  labs(title = "Impact of Promo Code Used on Purchase") +
+  scale_fill_manual(values = c("lightgreen", "lightcoral")) +
+  theme_void() +
+  theme(legend.position = "bottom") +
+  geom_text(aes(label = paste0(round((Count / sum(Count)) * 100, 1), "%")), 
+            position = position_stack(vjust = 0.5), color = "black", size = 4)
+print(plot)
+
+```
+
+
+
+As we can see there is no such imapact on using Promocode on purchase.
+
+
+
+```{r}
+Location_counts <- Location_counts[order(-Location_counts$Count), ]
+bp <- barplot(Location_counts$Count, col = "skyblue",
+              main = "Customer Distribution by Location", xlab =, ylab = "Number of Customers",
+              ylim = c(0, 100), border = 2,space = c(1,1))
+text(x = bp, y = -5, labels = Location_counts$Location, srt = 90, adj = c(1, 0.5), xpd = TRUE, cex = 0.8)
+
+
+
+```
+
+
+Montana stands out with its remarkable number of customers, surpassing all other states in this regard. The state's thriving business landscape and vibrant consumer market have contributed to its impressive customer base.
+
+
+
+
+```{r}
+barplot(category_counts$Count[order(-category_counts$Count)], names.arg = category_counts$Category[order(-category_counts$Count)],
+        col = "skyblue", main = "Customer Distribution by category", xlab = "product categories", ylab = "counts", ylim = c(0, 2000))
+
+
+```
+
+
+As we can see, the clothes category is the most popular among consumers.
+
+
+```{r}
+library(dplyr)
+my_summary_data <- shopping_data %>%
+    group_by(Age,Category) %>%
+    summarise(Count = n())
+my_summary_data
+```
+```{r}
+ library(ggplot2)
+
+
+
+age_groups <- c(15, 25, 35, 45, 55, 65)
+
+
+category_counts_by_age <- list()
+
+
+for (age in age_groups) {
+  age_group_data <- subset(shopping_data, Age >= age & Age < age + 10)
+  category_counts <- as.data.frame(table(age_group_data$Category))
+  category_counts$AgeGroup <- paste(age, "-", age + 10)
+  names(category_counts) <- c("Category", "Count", "AgeGroup")
+  category_counts_by_age[[as.character(age)]] <- category_counts
+}
+
+
+plot_data <- do.call(rbind, category_counts_by_age)
+
+
+ggplot(plot_data, aes(x = Category, y = Count, fill = factor(AgeGroup))) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.6) +
+  labs(x = "Product Categories", y = "Count", title = "Category Distribution by Age Groups") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_brewer(palette = "Set1") +
+  coord_flip()
+
+
+```
+
+As we can see Clothing is the most popular category among the all age groups. Accessories equally famous in all age groups except 15-25 and 65-75 age groups. However, we have seen that in Footwear category is most famous in 45-55 age Groupe. The last one Outerwear is almost equally famous in all age groups.
